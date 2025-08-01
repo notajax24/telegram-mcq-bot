@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from telegram import Bot
-from telegram.ext import Application
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import httpx
 import logging
@@ -17,8 +16,7 @@ bot = Bot(token=TELEGRAM_TOKEN)
 scheduler = AsyncIOScheduler()
 logging.basicConfig(level=logging.INFO)
 
-
-# Step 1: Generate MCQs using Perplexity API
+# Step 1: Generate MCQs
 async def generate_mcqs():
     prompt = (
         "Generate 50 English multiple-choice questions (MCQs) for SSC CGL, IBPS PO, SBI PO, SO, Clerk. "
@@ -53,8 +51,7 @@ async def generate_mcqs():
         logging.error(f"Perplexity API Error: {e}")
         return []
 
-
-# Step 2: Send polls
+# Step 2: Send MCQs
 async def send_mcqs():
     mcqs = await generate_mcqs()
     if not mcqs:
@@ -75,23 +72,20 @@ async def send_mcqs():
                 correct_option_id=correct_option,
                 is_anonymous=False
             )
-
             await asyncio.sleep(40)
-
         except Exception as e:
             logging.error(f"Error sending MCQ {i+1}: {e}")
             continue
 
-
-# Step 3: Start the bot
+# Step 3: Start
 async def main():
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    scheduler.add_job(send_mcqs, 'cron', hour=12, minute=10)  # 12:10 PM daily
+    scheduler.add_job(send_mcqs, 'cron', hour=12, minute=10)
     scheduler.start()
-
     logging.info("Bot started and scheduler set for 12:10 PM daily.")
-    await app.run_polling()
 
+    # Keeps the bot running
+    while True:
+        await asyncio.sleep(3600)
 
 if __name__ == '__main__':
     asyncio.run(main())
